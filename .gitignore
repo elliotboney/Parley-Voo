@@ -1,0 +1,12 @@
+# Privacy boundary — everything below this line is private data that must NEVER be committed (FR31, NFR1)
+people/
+transcripts/
+ingest/
+index.sqlite
+.parley/
+config.local.yaml
+
+# Python
+__pycache__/
+.venv/
+*.pyc

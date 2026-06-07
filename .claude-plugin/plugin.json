@@ -1,0 +1,11 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "parley-voo",
+  "version": "0.1.0",
+  "description": "Parley Voo - AI council deliberation plugin",
+  "author": {
+    "name": "Elliot Boney",
+    "email": "elliotboney@gmail.com"
+  },
+  "license": "MIT"
+}

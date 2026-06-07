@@ -1,0 +1,17 @@
+[project]
+name = "parley-voo"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlite-vec>=0.1.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-socket",
+]
+
+[tool.pytest.ini_options]
+addopts = "--disable-socket"
+testpaths = ["tests"]
