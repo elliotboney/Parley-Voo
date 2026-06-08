@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parley Voo — Roster Picker</title>
+<style>
+/*
+  Parley Voo — Roster-picker HTML artifact (Key Flow 2)
+  Anchors the HTML-artifact visual identity for the whole product.
+
+  Governed by these spine sections:
+  - DESIGN.md > Colors (warm paper #FBFAF7, ink #1A1B1F, single accent muted pine #2F5D50)
+  - DESIGN.md > Typography > HTML artifacts (Newsreader display moment, Inter body, JetBrains Mono machine text, tracked artifact-label)
+  - DESIGN.md > Layout & Spacing > HTML artifacts (single column max 720px, 40px section gaps, 24px gutter, always-visible Copy Prompt)
+  - DESIGN.md > Elevation & Depth (tone not shadow; hairline 1px; selected = accent border only)
+  - DESIGN.md > Shapes (rounded.sm 4px buttons, rounded.md 8px cards)
+  - DESIGN.md > Components > HTML-artifact (selectable card, "Ignores:" line, Copy Prompt button)
+  - EXPERIENCE.md > Component Patterns > HTML artifact (stateless; select → Copy Prompt → paste back; "Ignores:" as prominent as method)
+  - EXPERIENCE.md > Interaction Primitives > Copy-prompt round-trip (the only loop that leaves the terminal and always returns)
+  - EXPERIENCE.md > Key Flows > Flow 2 (tune roster before `/council "should we drop the enterprise tier?"`; four selected, ADHD Specialist unselected)
+  - PRD FR7 / FR11 / FR17 / FR18 (dual topology; orthogonality via "ignores"; roster override; negative-space picking)
+
+  No JS. Selected state is static. No network. Renders fully offline.
+*/
+
+:root {
+  --ink:           #1A1B1F;
+  --ink-muted:     #6B6560;
+  --ink-faint:     #9A938B;
+  --surface:       #FBFAF7;
+  --surface-raised:#FFFFFF;
+  --hairline:      #E7E3DB;
+  --accent:        #2F5D50;
+  --accent-fg:     #FFFFFF;
+  --stripped:      #B7B0A6;
+
+  --r-sm: 4px;
+  --r-md: 8px;
+
+  --gutter: 24px;
+  --section-gap: 40px;
+
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  /* room for the sticky footer so the last card never hides behind it */
+  padding-bottom: 96px;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 24px 0;
+}
+
+/* ── artifact-label : Inter 11px tracked 0.08em ─────────────── */
+.label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.head .label { margin-bottom: 12px; }
+
+/* the one display moment — the decision question */
+.decision {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.command {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin-top: 14px;
+}
+.command .slash { color: var(--accent); }
+
+.lede {
+  color: var(--ink-muted);
+  font-size: 15px;
+  margin: 18px 0 0;
+  max-width: 56ch;
+}
+.lede em { font-style: italic; color: var(--ink); }
+
+/* ── Section rhythm ─────────────────────────────────────────── */
+.section { margin-top: var(--section-gap); }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--gutter);
+}
+.section-head .count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ── Selectable cards ───────────────────────────────────────── */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--gutter);
+}
+
+/* selected state: accent border ONLY — no shadow, no fill */
+.card.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent); /* renders the 1px as 2px-feel hairline, still border-not-shadow */
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seat {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* selection marker — text-bearing, never color-only */
+.mark {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--hairline);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.card.is-selected .mark {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.method {
+  margin: 10px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+}
+.method .k {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: 8px;
+}
+
+/* "Ignores:" — as prominent as the method (negative-space picking, FR11/FR18) */
+.ignores {
+  margin: 8px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+}
+.ignores .k {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: 8px;
+}
+.ignores .what {
+  color: var(--ink);
+  font-style: italic;
+}
+
+/* unselected card reads slightly recessed but fully legible */
+.card:not(.is-selected) .seat { color: var(--ink); }
+
+/* ── Constructed prompt preview (mono, machine-bound) ───────── */
+.preview {
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--gutter);
+}
+.preview .label { margin-bottom: 12px; }
+.preview pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.preview .slash { color: var(--accent); }
+.preview .dim { color: var(--ink-faint); }
+
+.note {
+  margin-top: 14px;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+/* ── Sticky Copy Prompt footer — the only exit back to session ─ */
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+}
+.footer-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.footer-meta {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.copy-btn {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-fg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: 10px 22px;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .wrap { padding-top: 36px; }
+  .decision { font-size: 24px; }
+  .footer-inner { flex-direction: column; align-items: stretch; }
+  .copy-btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="label">Council roster · override</div>
+    <h1 class="decision">Should we drop the enterprise tier?</h1>
+    <div class="command"><span class="slash">/council</span> "should we drop the enterprise tier?" --roster</div>
+    <p class="lede">Pick seats by what they <em>ignore</em>, not just what they cover. Four independent blind spots make the synthesis worth more than the sum of its parts.</p>
+  </header>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Seats</span>
+      <span class="count">4 selected · 5 available</span>
+    </div>
+
+    <div class="cards">
+
+      <!-- SELECTED 1 -->
+      <article class="card is-selected">
+        <div class="card-top">
+          <h2 class="seat">Negotiation Architect</h2>
+          <span class="mark">Selected</span>
+        </div>
+        <p class="method"><span class="k">Method</span>BATNA / ZOPA framing, concession sequencing, timing of the ask.</p>
+        <p class="ignores"><span class="k">Ignores</span><span class="what">the relationship cost and how the move lands emotionally — treats the other party as a rational counterpart.</span></p>
+      </article>
+
+      <!-- SELECTED 2 -->
+      <article class="card is-selected">
+        <div class="card-top">
+          <h2 class="seat">Influence Tactician</h2>
+          <span class="mark">Selected</span>
+        </div>
+        <p class="method"><span class="k">Method</span>Cialdini levers under a mutual-benefit guardrail — only moves you'd run if the subject knew.</p>
+        <p class="ignores"><span class="k">Ignores</span><span class="what">whether the plan is executable under pressure; the durability of any single lever past the moment of the ask.</span></p>
+      </article>
+
+      <!-- SELECTED 3 -->
+      <article class="card is-selected">
+        <div class="card-top">
+          <h2 class="seat">Red Team</h2>
+          <span class="mark">Selected</span>
+        </div>
+        <p class="method"><span class="k">Method</span>Adversarial stress test; flags any tactic that only works if the subject doesn't notice (mutual-benefit bar).</p>
+        <p class="ignores"><span class="k">Ignores</span><span class="what">the upside — its job is the failure mode, not the win. Will not propose the move, only break it.</span></p>
+      </article>
+
+      <!-- SELECTED 4 -->
+      <article class="card is-selected">
+        <div class="card-top">
+          <h2 class="seat">Execution Realist</h2>
+          <span class="mark">Selected</span>
+        </div>
+        <p class="method"><span class="k">Method</span>Stress-tests whether <em>you</em> will run the plan under pressure — negative-space "don't" coaching (RSD, over-explaining).</p>
+        <p class="ignores"><span class="k">Ignores</span><span class="what">the content of the argument itself — assumes the strategy is sound and only asks if you can hold the line.</span></p>
+      </article>
+
+      <!-- UNSELECTED: ADHD Specialist (not relevant to a pricing call) -->
+      <article class="card">
+        <div class="card-top">
+          <h2 class="seat">ADHD Specialist</h2>
+          <span class="mark">Not selected</span>
+        </div>
+        <p class="method"><span class="k">Method</span>Reads attention, RSD, and time-blindness signals; reframes plans to survive an ADHD execution environment.</p>
+        <p class="ignores"><span class="k">Ignores</span><span class="what">the market and pricing logic of the decision — a clinical lens, off-topic for an enterprise-tier call.</span></p>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Constructed prompt</span>
+      <span class="count">paste back into session</span>
+    </div>
+    <div class="preview">
+      <span class="label">Will be copied</span>
+<pre><span class="slash">/council</span> "should we drop the enterprise tier?" \
+  --seats negotiation-architect,influence-tactician,red-team,execution-realist \
+  --topology all-parallel <span class="dim"># FR7</span>
+<span class="dim"># dropped: adhd-specialist</span></pre>
+      <p class="note">The artifact holds no state. This prompt is the whole handoff — copy it, paste it into the Claude Code session, and the council runs there.</p>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-meta">4 seats · all-parallel</span>
+    <button class="copy-btn" type="button">Copy Prompt</button>
+  </div>
+</footer>
+
+</body>
+</html>

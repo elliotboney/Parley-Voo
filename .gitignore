@@ -10,3 +10,8 @@ config.local.yaml
 __pycache__/
 .venv/
 *.pyc
+
+# BMAD dev tooling (local workflow machinery, not part of the plugin)
+.agents/
+.claude/
+_bmad/

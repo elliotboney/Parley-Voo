@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parley Voo — Playbook (terminal, quick mode)</title>
+<style>
+/*
+  SPINE SECTIONS GOVERNING THIS SCREEN
+  ------------------------------------
+  EXPERIENCE.md
+    · Component Patterns → "Playbook" row (top section anatomy + quick-mode trim)
+    · Component Patterns → "Past-win receipts" row (dated record inside playbook)
+    · State Patterns → "Quick mode (default)" row (trims to top + opening + first step; header notes `quick mode`)
+    · State Patterns → "Advice recorded" row (written to advice_outcomes, run /evaluate reminder)
+    · Voice and Tone → "Direct strategist" (terse; uncertainty in scores not prose)
+    · Trust & Disclosure → Falsifiability (FR21), Mutual-benefit guardrail (FR14)
+    · Key Flows → Flow 1 steps 3–4 (Elliot/Chris pricing proposal; RSD note)
+    · Accessibility Floor → never color-only meaning; strict heading hierarchy
+  DESIGN.md
+    · Typography → "Terminal markdown (primary target — rules, not fonts)"
+        (heading hierarchy, **bold** load-bearing word, citation code-span, confidence `word (0.NN)`)
+    · Layout & Spacing → "Terminal documents" (glanceable top section, no wide tables, `---` dividers)
+    · Components → Terminal-document components (confidence tag, citation ref,
+        attribution line, track-record line, section divider)
+    · Colors → "Color exists ONLY in HTML artifacts" — terminal target is monochrome.
+        The DOCUMENT TEXT below is deliberately colorless. The only color in this file
+        is the macOS window chrome (frame), NOT the rendered markdown.
+  FR refs: FR2 (playbook anatomy), FR4 (quick mode), FR13 (Execution Realist RSD),
+           FR14 (mutual-benefit guardrail), FR21 (falsifiability), FR28 (past-win receipts).
+
+  NOTE ON COLOR: per DESIGN.md the terminal is monochrome by host convention; the
+  artifact color palette is intentionally NOT applied to document text. Headings,
+  bold, dim, and code spans below use only neutral terminal-renderer tints
+  (a single foreground, a dim grey, a slightly raised code-span ink) the way a
+  real markdown-rendering terminal host would.
+*/
+
+:root {
+  /* macOS window chrome only — NOT document content */
+  --page-bg: #2b2b30;
+  --win-bg: #1c1c20;
+  --titlebar: #2a2a30;
+  --titlebar-text: #8a8a92;
+  --traffic-red: #ff5f57;
+  --traffic-yellow: #febc2e;
+  --traffic-green: #28c840;
+
+  /* terminal markdown renderer — monochrome-ish neutral tints */
+  --term-fg: #d6d6d2;        /* default body text */
+  --term-bright: #f4f3ef;    /* headings / bold (host renders brighter, not colored) */
+  --term-dim: #8b8b86;       /* dim: attributions, line refs, disclaimers */
+  --term-fainter: #6f6f6a;   /* faintest: meta / dividers */
+  --term-code-fg: #e7e6e1;   /* inline code span foreground */
+  --term-code-bg: #2c2c32;   /* inline code span background */
+  --term-prompt: #c9c9c3;    /* shell prompt glyphs (still monochrome) */
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page-bg);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+.stage {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.window {
+  width: 100%;
+  max-width: 860px;
+  background: var(--win-bg);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  border: 1px solid #000;
+}
+
+/* ---- macOS title bar (the ONLY colored element) ---- */
+.titlebar {
+  height: 38px;
+  background: linear-gradient(180deg, #34343b 0%, #2a2a30 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid #000;
+  position: relative;
+}
+.lights { display: flex; gap: 8px; }
+.light { width: 12px; height: 12px; border-radius: 50%; }
+.light.red { background: var(--traffic-red); }
+.light.yellow { background: var(--traffic-yellow); }
+.light.green { background: var(--traffic-green); }
+.title {
+  position: absolute;
+  left: 0; right: 0;
+  text-align: center;
+  color: var(--titlebar-text);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+/* ---- terminal body ---- */
+.term {
+  padding: 18px 22px 26px;
+  color: var(--term-fg);
+  font-size: 13.5px;
+  line-height: 1.65;
+  overflow-x: auto;
+}
+
+/* shell command line (the /advise invocation) */
+.cmd { white-space: pre-wrap; margin: 0 0 4px; }
+.cmd .prompt { color: var(--term-prompt); }
+.cmd .you { color: var(--term-fg); }
+.sys {
+  color: var(--term-dim);
+  margin: 0 0 14px;
+  font-size: 12.5px;
+}
+.sys .spin { color: var(--term-fg); }
+
+/* the emitted markdown document */
+.doc { white-space: normal; }
+
+.doc h1, .doc h2, .doc h3 {
+  color: var(--term-bright);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.35;
+}
+.doc h1 { font-size: 15.5px; margin: 6px 0 2px; }
+.doc h2 { font-size: 14px; margin: 18px 0 4px; }
+.doc h3 { font-size: 13.5px; margin: 14px 0 2px; color: var(--term-fg); }
+
+.doc p { margin: 6px 0; }
+.doc .lead { margin: 2px 0 6px; }
+
+.doc strong { color: var(--term-bright); font-weight: 700; }
+.doc em { color: var(--term-dim); font-style: italic; }
+
+/* dim / faint utility lines */
+.dim { color: var(--term-dim); }
+.attr { color: var(--term-dim); font-size: 12.5px; margin: 2px 0 0; }
+.track { color: var(--term-dim); font-size: 12.5px; }
+
+/* inline code span — citations, refs, commands */
+code {
+  font-family: inherit;
+  background: var(--term-code-bg);
+  color: var(--term-code-fg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+
+/* lists */
+.doc ul, .doc ol { margin: 6px 0; padding-left: 22px; }
+.doc li { margin: 3px 0; }
+
+/* horizontal rule divider (the `---` convention) */
+.doc hr {
+  border: 0;
+  border-top: 1px solid var(--term-fainter);
+  margin: 18px 0;
+  opacity: 0.55;
+}
+
+/* meta header line under H1 */
+.docmeta {
+  color: var(--term-dim);
+  font-size: 12.5px;
+  margin: 0 0 4px;
+}
+.docmeta .mode {
+  color: var(--term-fg);
+  border: 1px solid var(--term-fainter);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-size: 11.5px;
+}
+
+/* the "what you lose" / negative-space callout — still monochrome, set off by a rule */
+.lose {
+  border-left: 2px solid var(--term-fainter);
+  padding-left: 12px;
+  margin: 6px 0;
+}
+
+/* blinking cursor at end of session */
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--term-fg);
+  vertical-align: text-bottom;
+  margin-left: 2px;
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="window" role="img" aria-label="Terminal window showing a Parley Voo playbook in quick mode">
+
+    <div class="titlebar">
+      <div class="lights">
+        <span class="light red"></span>
+        <span class="light yellow"></span>
+        <span class="light green"></span>
+      </div>
+      <div class="title">elliot@studio — claude — 86×44</div>
+    </div>
+
+    <div class="term">
+
+      <!-- /advise invocation line -->
+      <p class="cmd"><span class="prompt">&gt; </span><span class="you">/advise "get Chris to back the new pricing proposal" Chris</span></p>
+      <p class="sys"><span class="spin">⠿</span> council convened · quick mode · 3 strategist seats + Red Team + Execution Realist · profile: Chris (6 transcripts) · self read: Elliot ✓</p>
+
+      <!-- emitted markdown document begins -->
+      <div class="doc">
+
+        <h1># Playbook — get Chris to back the new pricing proposal</h1>
+        <p class="docmeta">Chris · <span class="mode">quick mode</span> · 2026-06-05 · <em>a read, not a fact — interpreted from 6 transcripts</em></p>
+
+        <!-- ===================== GLANCEABLE TOP SECTION (FR2) ===================== -->
+        <h2>## Top section</h2>
+
+        <p class="lead"><strong>Plan:</strong> Open by naming the cost to <em>him</em> of the status quo, not the upside to you. Get the pricing change framed as protecting his margin before you ever say "increase."</p>
+
+        <h3>### Character read</h3>
+        <p>Decides on downside risk first, upside second — confidence <strong>high (0.84)</strong> <code>[2026-05-12 1:1, L84]</code>. Disengages when pitched cold; needs the problem stated before the ask <strong>high (0.79)</strong> <code>[2026-04-19 group, L112]</code>. Reads warmth-without-substance as a tell that he's being managed <strong>mid (0.58)</strong> <code>[2026-03-08 1:1, L23]</code>.</p>
+        <p class="attr">— Profile Translator, decoder ring (subject + self)</p>
+
+        <h3>### Past-win receipts</h3>
+        <ul>
+          <li>Warning him before pitching <strong>landed</strong> last time — he backed the renewal terms `<code>[2026-04-02 1:1, L40]</code>`. <span class="track">Outcome: worked.</span></li>
+          <li>Leading with his team's workload (not your roadmap) unblocked the Q1 hire <code>[2026-02-14 1:1, L61]</code>. <span class="track">Outcome: worked.</span></li>
+        </ul>
+        <p class="attr">— pulled from <code>advice_outcomes</code> · queryable</p>
+
+        <h3>### Fallacies to avoid</h3>
+        <ul>
+          <li><strong>Anchoring on your number.</strong> Lead with the problem, not the new price — he'll defend against a figure he didn't ask to hear.</li>
+          <li><strong>Mistaking his silence for a no.</strong> He goes quiet to compute, not to reject <code>[2026-05-12 1:1, L91]</code>.</li>
+        </ul>
+        <p class="attr">— Red Team, adversarial pass</p>
+
+        <p class="track">Red Team: batting <strong>.71</strong> on Chris (n=14) · Brier 0.19</p>
+        <p class="track">Mutual-benefit guardrail: <strong>pass</strong> — every move below works even if Chris sees the playbook (FR14).</p>
+
+        <hr>
+
+        <!-- ===================== QUICK-MODE BODY (trimmed, FR4) ===================== -->
+        <h2>## Opening line</h2>
+        <p>"Before I show you the new pricing, I want to flag the thing it's solving — because the way we're billing now is going to cost your team margin by Q3, and I'd rather you hear it from me first."</p>
+        <p class="attr">— Message Strategist, problem-before-ask framing</p>
+
+        <div class="lose">
+          <p><strong>What you lose:</strong> the warm open. Skipping the catch-up reads colder up front — but with Chris, warmth-first reads as <em>managed</em>, and the cost is lower than the tell. <strong>mid (0.58)</strong></p>
+        </div>
+
+        <h2>## First step</h2>
+        <ol>
+          <li><strong>Say the cost line first — then stop.</strong> Don't reach for the slide deck until he responds. Let the problem sit with him before any number appears.</li>
+        </ol>
+        <p class="attr">— Negotiation Architect, sequence control</p>
+
+        <p class="dim"><strong>Execution Realist (RSD):</strong> <em>Don't over-explain if he pauses — silence isn't rejection. Say the line, hold it, let him compute. The urge to fill the gap is the failure mode here, not his quiet.</em></p>
+        <p class="attr">— Execution Realist, self decoder ring (FR13)</p>
+
+        <hr>
+
+        <p class="dim"><strong>Trimmed in quick mode:</strong> full Red Team rebuttal pass, peer-reviewed objections + responses, and the fallback branch. Re-run with <code>--full</code> to expand.</p>
+
+        <!-- ===================== STATE: ADVICE RECORDED ===================== -->
+        <p class="sys" style="margin-top:14px;">✓ Plan recorded to <span class="spin">advice_outcomes</span> · status: <strong style="color:var(--term-fg);font-weight:700;">awaiting outcome</strong>. After the call, drop the transcript in <code style="background:var(--term-code-bg);">ingest/transcripts/</code> and run <code style="background:var(--term-code-bg);">/evaluate</code> to score it.</p>
+
+      </div><!-- /doc -->
+
+      <p class="cmd" style="margin-top:10px;"><span class="prompt">&gt; </span><span class="cursor"></span></p>
+
+    </div><!-- /term -->
+  </div><!-- /window -->
+</div>
+</body>
+</html>
