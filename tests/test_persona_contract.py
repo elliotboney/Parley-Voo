@@ -142,6 +142,55 @@ def test_staged_topology_is_specified():
         assert marker in staged, f"## Staged spec missing marker: {marker!r}"
 
 
+COUNCIL_DEFAULT = REPO_ROOT / "councils" / "council-default.md"
+COUNCIL_SKILL = REPO_ROOT / "skills" / "council" / "SKILL.md"
+
+
+def _flat_list_line(text: str, key: str) -> list[str]:
+    """Extract a flat `key: [a, b]` list from raw text (no full parse —
+    roster model_overrides is a nested map the flat parser would misread)."""
+    for line in text.splitlines():
+        if line.startswith(f"{key}:"):
+            value = line.split(":", 1)[1].strip()
+            assert value.startswith("[") and value.endswith("]"), (
+                f"{key} is not a flat list: {value!r}"
+            )
+            inner = value[1:-1].strip()
+            return [v.strip() for v in inner.split(",")] if inner else []
+    raise AssertionError(f"council-default.md missing {key!r} line")
+
+
+def test_council_default_roster_contract():
+    """councils/council-default.md must satisfy the engine's validation rules."""
+    assert COUNCIL_DEFAULT.is_file(), "councils/council-default.md missing"
+    text = COUNCIL_DEFAULT.read_text()
+    assert "topology: parallel" in text, "council-default must be topology: parallel"
+    seats = _flat_list_line(text, "seats")
+    quick = _flat_list_line(text, "quick_seats")
+    assert seats, "seats must be non-empty"
+    assert quick, "quick_seats must be non-empty (engine validation requires it)"
+    assert len(seats) == len(set(seats)), "duplicate seat IDs in seats"
+    assert set(quick) < set(seats), "quick_seats must be a STRICT subset of seats"
+    assert "chairman" not in seats, "chairman is implicit — never listed in seats"
+    for seat_id in seats:
+        assert (AGENTS_DIR / f"{seat_id}.md").is_file(), (
+            f"roster names seat {seat_id!r} but agents/{seat_id}.md does not exist"
+        )
+
+
+def test_council_command_skill_contract():
+    """skills/council/SKILL.md: dual keys, <500 lines, FR8 + mode-forwarding."""
+    assert COUNCIL_SKILL.is_file(), "skills/council/SKILL.md missing"
+    text = COUNCIL_SKILL.read_text()
+    fm = parse_frontmatter(COUNCIL_SKILL)
+    assert fm.get("name") == "council", "SKILL.md frontmatter name must be 'council'"
+    assert fm.get("description"), "SKILL.md missing description (--strict fails)"
+    assert len(text.splitlines()) < 500, "council SKILL.md must be <500 lines"
+    # FR8 standalone-guarantee markers + mode forwarding
+    for marker in ("people/", "index.sqlite", "`--full`", "council-default"):
+        assert marker in text, f"council SKILL.md missing marker: {marker!r}"
+
+
 def test_skill_md_mode_resolution_rules():
     """SKILL.md must carry quick/full mode resolution and staged dispatch (AC 2)."""
     text = SKILL_MD.read_text()
