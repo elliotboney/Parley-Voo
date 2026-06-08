@@ -127,16 +127,27 @@ TOPOLOGIES_MD = SKILL_MD.parent / "references" / "topologies.md"
 def test_staged_topology_is_specified():
     """## Staged must be a real spec (Story 1.3), not the 1.2 stub."""
     text = TOPOLOGIES_MD.read_text()
-    staged = text.split("## Staged", 1)[1]
+    assert "## Staged" in text, "topologies.md missing the ## Staged section"
+    # Bound the slice to the Staged section only — markers must not be
+    # satisfied by later sections (e.g. ## Modes).
+    staged = text.split("## Staged", 1)[1].split("\n## ", 1)[0]
     assert "not yet implemented" not in staged, "## Staged is still the 1.2 stub"
-    for marker in ("stage group", "prior stage", "framed input"):
-        assert marker in staged, f"## Staged spec missing handoff marker: {marker!r}"
+    for marker in (
+        "stage group",      # roster shape: list of stage groups
+        "framed input",     # handoff carries the original framed input
+        "EXECUTED stage",   # handoff source: immediately preceding executed stage
+        "sequential",       # AC1: stages execute sequentially
+        "ONE message",      # AC1: intra-stage parallel single-message fan-out
+    ):
+        assert marker in staged, f"## Staged spec missing marker: {marker!r}"
 
 
 def test_skill_md_mode_resolution_rules():
     """SKILL.md must carry quick/full mode resolution and staged dispatch (AC 2)."""
     text = SKILL_MD.read_text()
-    for marker in ("quick_seats", "`--full`", "quick"):
+    # "quick mode" is a standalone marker — bare "quick" would be dead
+    # coverage (substring of the already-asserted "quick_seats").
+    for marker in ("quick_seats", "`--full`", "quick mode"):
         assert marker in text, f"SKILL.md missing mode-resolution marker: {marker!r}"
     assert "peer review" in text.lower(), "SKILL.md missing peer-review skip rule"
     # staged must dispatch, not fail closed as unimplemented

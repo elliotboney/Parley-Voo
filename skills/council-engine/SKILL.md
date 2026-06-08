@@ -31,7 +31,7 @@ Read the roster file's YAML frontmatter:
 |---|---|
 | `topology` | `parallel` or `staged` — how the deliberation runs |
 | `seats` | ordered list of seat IDs participating in a full run |
-| `quick_seats` | subset of `seats` used in quick mode (Story 1.3 — ignore for now) |
+| `quick_seats` | non-empty subset of `seats` that runs in quick mode (see Step 3) |
 | `model_overrides` | optional map of `seat_id → tier` |
 
 The shape of `seats` depends on topology: a flat list of seat IDs for
@@ -48,8 +48,15 @@ Validate the roster before loading anything:
 - `chairman` must NOT appear in `seats` or any stage group — the chairman is
   implicit final synthesis in both topologies, appended by the engine. STOP:
   `Roster '<name>' lists 'chairman' as a seat; the chairman is implicit.`
+- `quick_seats` must be PRESENT and non-empty — quick is the default mode,
+  so a roster without a usable `quick_seats` would run zero seats. Missing
+  key or empty list → STOP: `Roster '<name>' has no quick_seats; every
+  roster must name its quick subset.` (An empty list is a vacuous subset —
+  it passes a naive subset check; reject it explicitly.)
 - `quick_seats` must be a subset of the flattened `seats` — an unknown ID →
   STOP: `quick_seats names '<id>', which is not a seat in this roster.`
+  `chairman` in `quick_seats` gets the implicit-chairman STOP above, not the
+  generic unknown-ID one.
 - `topology` must be a value this engine implements (see Step 4). Unknown or
   unimplemented values fail closed — never fall back to `parallel` silently.
 
@@ -84,9 +91,10 @@ parameter; `strong-model` → the session's top-tier model parameter.
 
 ## Step 3: Resolve the mode
 
-**HARD RULE: mode is an engine INPUT; mode SEMANTICS come only from the
-roster. The engine never decides mode per command** — command skills merely
-forward the user's flag.
+**HARD RULE: WHO runs comes only from the roster (`seats`, `quick_seats`,
+`topology`); WHAT each mode means protocol-wise is defined HERE, once,
+identically for every command. The engine never decides mode per command**
+— command skills merely forward the user's flag.
 
 - Default mode is **quick**. The caller may pass an escalation (the
   `--full` flag's semantics) → **full**.
@@ -184,9 +192,14 @@ contract in brief:
 1. Stage groups execute sequentially, hard boundaries between stages.
 2. All seats within one stage group spawn in ONE message; same-stage seats
    never see each other's output.
-3. Decoder-ring handoff: every seat in stage N+1 receives the original
-   framed input + ALL outputs of stage N (prior stage ONLY, attributed by
-   display name — staged handoff is deliberately NOT anonymous).
+3. Decoder-ring handoff: every seat in an executing stage receives the
+   original framed input + ALL outputs of the **immediately preceding
+   EXECUTED stage** — one stage's outputs only, never a cumulative chain
+   (attributed by display name — staged handoff is deliberately NOT
+   anonymous). In quick mode "preceding executed stage" skips over
+   stages that didn't run, and a partially-run stage hands off only the
+   outputs of the seats that actually ran. The first executing stage has
+   no predecessor: it receives the framed input only.
 4. Quick mode: stage groups with no `quick_seats` members are skipped
    whole; within a surviving stage, only its quick seats run.
 5. After the final stage: full mode runs the anonymized shuffle → peer

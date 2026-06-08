@@ -93,11 +93,17 @@ that lists `chairman` as a seat fails closed.
 - **Intra-stage parallelism:** all seats within one stage group spawn in
   ONE message — same single-message rule as parallel stage 1. Seats in
   the same stage never see each other's output.
-- **Decoder-ring handoff:** every seat in stage N+1 receives the original
-  framed input + ALL outputs of stage N — the prior stage ONLY, not a
-  cumulative chain. A stage that needs earlier context must carry it
-  forward in its own output; that forward-carry IS the decoder-ring
-  discipline.
+- **Decoder-ring handoff:** every seat in an executing stage receives the
+  original framed input + ALL outputs of the immediately preceding
+  EXECUTED stage — one stage's outputs only, not a cumulative chain. A
+  stage that needs earlier context must carry it forward in its own
+  output; that forward-carry IS the decoder-ring discipline.
+  - In quick mode, "preceding executed stage" skips over skipped stages;
+    a partially-run stage hands off only the outputs of the seats that
+    actually ran.
+  - The first EXECUTING stage (whether stage 1, or a later stage whose
+    predecessors were all skipped) has no handoff: it receives the framed
+    input only, and must reason from that alone.
 - **Handoff is attributed, not anonymous.** Stage outputs pass downstream
   WITH display names — the decoder ring only works if downstream seats
   know what they are building on. This is a deliberate contrast with the
@@ -116,12 +122,23 @@ After the last stage group completes (full mode only):
 
 1. Anonymized shuffle over ALL seat outputs from the whole run — one
    label per seat response, randomized mapping, withheld downstream.
+   **Anonymity here is partial by construction:** later-stage seats
+   already saw earlier stages' attributed outputs during the handoff, so
+   a reviewer may recognize upstream responses. The shuffle still buys
+   real things — same-stage and downstream responses stay blind to every
+   reviewer, and the chairman (who never saw the pipeline) gets the full
+   anti-deference boundary. State no more than that.
 2. Peer-review fan-out (reviewers are the participating seats, one
    message, conformity check included) — same machinery as parallel
    stage 2.
 3. Devil's advocate, then chairman synthesis — same as parallel stage
    3a/3b, including label-based dissent attribution with engine-side
-   substitution.
+   substitution. **Staged caveat for the DA prompt:** convergence in a
+   pipeline is manufactured on purpose — later stages were INSTRUCTED to
+   build on earlier ones, so "the emerging consensus" cannot be read the
+   way it is in parallel runs. The DA attacks the pipeline's FINAL
+   position (the last stage's output plus what it inherited), not the
+   fact that the stages agree.
 
 In quick mode the pipeline runs trimmed (see SKILL.md mode rules) and
 this tail reduces to shuffle + chairman only.
@@ -140,5 +157,10 @@ the command:
 - **Full (`--full`):** all seats + anonymized peer review + devil's
   advocate + chairman.
 - **Staged quick:** a stage group whose intersection with `quick_seats`
-  is empty is skipped entirely; the handoff flows from the last
-  non-skipped stage to the next; stage order is preserved.
+  is empty is skipped entirely; the handoff carries the immediately
+  preceding EXECUTED stage's outputs (see Execution above); stage order
+  is preserved.
+- **Degenerate single-seat run:** when only one seat executes (e.g. a
+  one-member `quick_seats`), the shuffle is a formality — one response,
+  one label. The run is still valid: the chairman synthesizes it and
+  must say plainly that the verdict rests on a single unreviewed voice.

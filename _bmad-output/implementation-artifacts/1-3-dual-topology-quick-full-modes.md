@@ -4,7 +4,7 @@ baseline_commit: d03781f146c79b24d30bb5036dbaf1d1aaf62cd7
 
 # Story 1.3: Dual Topology & Quick/Full Modes
 
-Status: review
+Status: done
 
 <!-- Created 2026-06-07 by create-story workflow — ultimate context engine analysis completed -->
 
@@ -49,6 +49,18 @@ So that `/advise`-style pipelines are possible and routine runs stay cheap (FR7,
   - [x] Staged full run: throwaway 2-stage fixture (e.g. `tests/fixtures/test-staged-council.md`, manual-record convention from 1.2 — personas documented inline, NOT in `agents/`), toy decision; verify by inspection: stage 2 prompts contained stage 1 output with display-name attribution, intra-stage spawns went out in one message, post-pipeline shuffle/review/DA/chairman ran
   - [x] Quick run (either topology): verify only `quick_seats` spawned, ZERO reviewer spawns, ZERO devil's-advocate spawn, shuffle still applied, chairman noted quick mode / reduced assurance
   - [x] Record both observed run shapes in Dev Agent Record (prompt-orchestration bar from 1.2: honest manual verification + structural tests; pytest cannot verify runtime behavior)
+
+### Review Findings
+
+- [x] [Review][Patch] HIGH: `quick_seats` never required to exist or be non-empty — quick is the DEFAULT mode, so a roster missing `quick_seats` (or with `[]`, a vacuous subset) passes validation and runs zero seats; also `chairman` in `quick_seats` produces a confusing "not a seat" error instead of the implicit-chairman error [skills/council-engine/SKILL.md — Step 1 validation]
+- [x] [Review][Patch] HIGH: handoff-under-skip undefined — "prior stage ONLY" conflicts with quick mode's "handoff flows from the last non-skipped stage"; partial stages promise "ALL outputs of stage N" when only the quick subset ran; a first surviving stage whose predecessors were all skipped has no defined input [skills/council-engine/SKILL.md — Staged items 3–4; references/topologies.md — Execution + Modes]
+- [x] [Review][Patch] MED: Step 3 HARD RULE overstates — "mode SEMANTICS come only from the roster" is false on its face: only seat membership (`quick_seats`) and topology are roster-defined; what quick/full MEANS (skip review/DA, keep shuffle) is engine-defined in the very next bullets [skills/council-engine/SKILL.md — Step 3]
+- [x] [Review][Patch] MED: staged full-mode tail claims anonymity the pipeline already spent — later-stage seats saw earlier stages' ATTRIBUTED outputs, so reviewer anonymity is partial; document honestly what the shuffle still buys (same-stage/later-stage blinding + the chairman boundary) [skills/council-engine/references/topologies.md — Full-mode tail]
+- [x] [Review][Patch] MED: staged devil's-advocate consensus detection misreads the pipeline — later stages were INSTRUCTED to build on earlier ones, so "emerging consensus" detection tuned for independent parallel responses will see manufactured convergence; DA prompt must attack the pipeline's final position instead [skills/council-engine/references/topologies.md — Full-mode tail item 3]
+- [x] [Review][Patch] MED: chairman procedure step 4 uses peer reviews unconditioned — step 2 was quick-mode-guarded but step 4 ("use the peer reviews to judge") was not; in quick mode this invites the exact fabrication the intro forbids; must self-judge conformity when no reviews exist [agents/chairman.md — Procedure step 4]
+- [x] [Review][Patch] MED: stale roster-table row contradicts the new mode spec — `quick_seats | … (Story 1.3 — ignore for now)` still ships while Step 3 makes it load-bearing [skills/council-engine/SKILL.md — Step 1 roster table]
+- [x] [Review][Patch] MED: test hardening — `## Staged` slice is unbounded (markers can match `## Modes` text below it), missing-heading case raises IndexError instead of a named assertion, `"quick"` marker is dead coverage (substring of already-asserted `"quick_seats"`), and AC1's sequential/intra-stage-parallel clauses have no marker at all [tests/test_persona_contract.py — test_staged_topology_is_specified, test_skill_md_mode_resolution_rules]
+- [x] [Review][Patch] LOW: chairman status-line contract loose + degenerate single-seat run undocumented — SKILL.md pins `Mode: <quick|full> · Topology: <parallel|staged>` but chairman.md input 5 doesn't, inviting drift; and a single-`quick_seats` run reduces shuffle/dissent machinery to one label with no stated behavior [agents/chairman.md — input 5; skills/council-engine/SKILL.md / references/topologies.md — Modes]
 
 ## Dev Notes
 
@@ -189,3 +201,4 @@ claude-opus-4-8[1m] (Claude Code); smoke seats/reviewers on haiku-class, DA + ch
 ## Change Log
 
 - 2026-06-07: Story 1.3 implemented — staged topology (stage groups, decoder-ring handoff, intra-stage parallelism, full-mode tail), quick/full mode resolution (roster-defined semantics, quick skips review+DA, keeps shuffle), chairman quick-mode tolerance, roster validation extensions, 2 new structural tests (16 total), live staged-full + staged-quick smoke runs verified. Commit `6832f6f` on `main`, CI green.
+- 2026-06-07: Code review (parallel clean-context layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor) — 9 patch findings resolved, 0 decisions, 0 deferred: quick_seats presence/non-empty validation, handoff-under-skip reconciliation (immediately preceding EXECUTED stage), HARD RULE reworded (who-from-roster vs what-from-engine), staged-tail partial-anonymity honesty, staged DA pipeline caveat, chairman step-4 quick-mode guard + pinned status-line format + single-voice note, stale table row fixed, tests hardened (bounded section slice, no IndexError, no vacuous markers, AC1 sequential/intra-stage markers).
