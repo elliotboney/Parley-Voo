@@ -19,6 +19,7 @@ CREATE TABLE conversations (
     occurred_at TEXT NOT NULL,
     setting TEXT NOT NULL CHECK (setting IN ('1:1', 'group')),
     participants TEXT NOT NULL
+        CHECK (json_valid(participants) AND json_type(participants) = 'array')
 );
 
 -- char_span: source character offsets for citation back-mapping
@@ -52,7 +53,7 @@ CREATE TABLE advice_outcomes (
     id INTEGER PRIMARY KEY,
     person_id INTEGER NOT NULL REFERENCES people(id),
     seat TEXT NOT NULL,
-    forecast_prob REAL NOT NULL,
+    forecast_prob REAL NOT NULL CHECK (forecast_prob BETWEEN 0.0 AND 1.0),
     outcome TEXT, -- NULL until resolved
     predicted_at TEXT NOT NULL,
     resolved_at TEXT
@@ -67,7 +68,9 @@ CREATE VIRTUAL TABLE vec_turns USING vec0(
 );
 
 -- single-row config table; Story 3.2 writes the row
+-- id is fixed to 1 so a second row can never be inserted
 CREATE TABLE meta (
+    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     embedding_model_id TEXT,
     lexicon_version TEXT,
     schema_version INTEGER

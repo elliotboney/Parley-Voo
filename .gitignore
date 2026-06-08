@@ -2,7 +2,7 @@
 people/
 transcripts/
 ingest/
-index.sqlite
+index.sqlite*
 .parley/
 config.local.yaml
 
