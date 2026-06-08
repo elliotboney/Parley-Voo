@@ -15,8 +15,9 @@ implicit chairman. It reads DECISIONS, not people: no profiles, no
 transcripts, no database (FR8).
 
 Quick mode (default) runs the Pragmatist and Risk Officer with no peer
-review — the gut-check tier. `--full` adds First Principles, anonymized
-peer review, and the devil's-advocate pass.
+review — the gut-check tier; the chairman synthesis still runs (it always
+does). `--full` adds First Principles, anonymized peer review, and the
+devil's-advocate pass.
 
 This file is the portable roster format (FR9): copy it, rename it, swap
 seats, and run it anywhere the engine runs.

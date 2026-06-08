@@ -1,5 +1,5 @@
 # generated: 2026-06-05 17:50:19
-# last_updated: 2026-06-07 12:31:36
+# last_updated: 2026-06-07 13:40:30
 # project: parley_voo
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-05 17:50:19
-last_updated: 2026-06-07 12:31:36
+last_updated: 2026-06-07 13:40:30
 project: parley_voo
 project_key: NOKEY
 tracking_system: file-system
@@ -47,7 +47,7 @@ development_status:
   1-1-plugin-scaffold-ci-gate: done
   1-2-deliberation-engine-parallel-topology-peer-review-chairman: done
   1-3-dual-topology-quick-full-modes: done
-  1-4-council-generic-verdicts: review
+  1-4-council-generic-verdicts: done
   epic-1-retrospective: optional
 
   # Epic 2: The Expert Bench — Personas, Rosters & Portability

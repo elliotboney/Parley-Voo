@@ -66,7 +66,10 @@ Each clash labeled **value tension** or **error catch**, with the reasoning.
 
 ### Blind Spots
 
-What no response addressed until peer review surfaced it.
+What no response addressed until peer review surfaced it. In quick mode
+(no peer reviews exist), this is what the responses jointly failed to
+address by your own reading. If nothing qualifies, say so in one line —
+never invent a blind spot to fill the section.
 
 ### Recommendation
 

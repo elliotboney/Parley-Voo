@@ -4,7 +4,7 @@ baseline_commit: 21d115efcea67aea4a869b7a80ce9db386fd3af4
 
 # Story 1.4: `/council` — Generic Verdicts
 
-Status: review
+Status: done
 
 <!-- Created 2026-06-07 by create-story workflow — ultimate context engine analysis completed -->
 
@@ -47,6 +47,16 @@ So that I get structured deliberation with zero coach-pipeline setup (FR3, FR8).
   - [x] `--full` run: all 3 seats + 3 peer reviews + DA + chairman; header reflects full mode
   - [x] Standalone check: confirm `people/`, `transcripts/`, `index.sqlite` do not exist in the repo and nothing in the run referenced them (FR8 proof is their ABSENCE + a clean run)
   - [x] Record both run shapes + any rendering fixes the render-check pass had to apply in Dev Agent Record
+
+### Review Findings
+
+- [x] [Review][Patch] MED: command input handling has unguarded paths — empty/whitespace quoted decision runs the engine on nothing; `--full` inside the quoted decision text could silently escalate; unknown flags (`--quick`, `-f`) fall through into the decision text; multi-line decision capture unspecified [skills/council/SKILL.md — Inputs + Step 1]
+- [x] [Review][Patch] MED: mode-header seat count `N` unbound — nothing says N = the engine's ACTUAL participating seat count (chairman excluded); a model could fill it from roster length, mislabeling quick runs as "3 seats" [skills/council/SKILL.md — Step 3]
+- [x] [Review][Patch] MED: quick-mode Blind Spots has no defined source — chairman.md defines the section as "what no response addressed until peer review surfaced it," but quick mode has no peer review; the exactly-seven render-check then pressures fabrication. Chairman needs a quick-mode definition + permission to say "none"; render-check must allow present-but-empty [agents/chairman.md — output contract; skills/council/SKILL.md — Step 4 rule 4]
+- [x] [Review][Patch] LOW: render-check overreach risks — rule 1 could rewrite a deliberately unquantified claim into a fabricated number (must apply only to confidence claims actually made); rule 2 has no stated zero-dissent path (absence of dissent is valid, not a violation) [skills/council/SKILL.md — Step 4 rules 1–2]
+- [x] [Review][Patch] LOW: roster prose omits that chairman synthesis still runs in quick mode — "runs the Pragmatist and Risk Officer with no peer review" reads as the complete quick run [councils/council-default.md — body]
+- [x] [Review][Patch] LOW: test hardening — seat IDs unvalidated against kebab-case (comma-in-element would silently mis-parse the flat list); FR8 marker `index.sqlite` passes vacuously if the prohibition is gutted but the word survives (assert `index.sqlite*` + "Never read"); `model_overrides` keys never validated ⊆ seats ∪ {chairman} [tests/test_persona_contract.py]
+- [x] [Review][Patch] LOW: Dev Agent Record "18 passed" conflates suite scope — reads as if all 18 live in the persona file; actual split is 13 persona-contract + 5 schema [story file — Debug Log]
 
 ## Dev Notes
 
@@ -142,7 +152,7 @@ claude-opus-4-8[1m] (Claude Code); smoke seats/reviewers on haiku-class, DA + ch
 ### Debug Log References
 
 - RED: 2 new structural tests failed pre-authoring (11 existing passed)
-- GREEN: `uv run pytest` → 18 passed; `claude plugin validate ./ --strict` → ✔ (4 agents + 2 skills); council SKILL.md 83 lines
+- GREEN: `uv run pytest` → 18 passed (full suite: 13 in test_persona_contract.py + 5 in test_schema.py); `claude plugin validate ./ --strict` → ✔ (4 agents + 2 skills); council SKILL.md 83 lines
 - CI green on `5ada55a` via `gh run watch --exit-status`
 - FR8 state verified before smoke: no `people/`, no `transcripts/`, no `index.sqlite*` in the repo
 
@@ -169,3 +179,4 @@ claude-opus-4-8[1m] (Claude Code); smoke seats/reviewers on haiku-class, DA + ch
 ## Change Log
 
 - 2026-06-07: Story 1.4 implemented — `/council` command skill (mode forwarding, FR8 standalone hard rule, verdict shell + render-check), `councils/council-default.md` (parallel, strict-subset quick_seats), 3 generic personas (pragmatist / risk-officer / first-principles), 2 structural tests (18 total). Live smoke: quick run (2 seats, 0 review/DA spawns) + `--full` run (3 seats + 3 reviews + DA + chairman) both verified against all 3 ACs; FR8 proven on a repo with no people/, transcripts/, or index.sqlite. Commit `5ada55a` on `main`, CI green. Epic 1 functionally complete.
+- 2026-06-07: Code review (parallel clean-context layers) — 7 patch findings resolved, 0 decisions, 0 deferred: command input hardening (empty decision, --full-in-quotes, unknown flags STOP, multi-line verbatim), mode-header N bound to participating seats, quick-mode Blind Spots source defined in chairman.md + render-check present-but-empty allowance, render-check overreach guards (no fabricated confidences/dissents), roster prose notes chairman always runs, tests hardened (kebab-case seat IDs, FR8 prohibition marker, model_overrides key validation — 19 total), Debug Log suite-scope clarified. Auditor verdict: no material AC violations, zero scope leakage.

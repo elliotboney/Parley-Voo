@@ -160,6 +160,9 @@ def _flat_list_line(text: str, key: str) -> list[str]:
     raise AssertionError(f"council-default.md missing {key!r} line")
 
 
+KEBAB_RE = __import__("re").compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+
 def test_council_default_roster_contract():
     """councils/council-default.md must satisfy the engine's validation rules."""
     assert COUNCIL_DEFAULT.is_file(), "councils/council-default.md missing"
@@ -173,9 +176,33 @@ def test_council_default_roster_contract():
     assert set(quick) < set(seats), "quick_seats must be a STRICT subset of seats"
     assert "chairman" not in seats, "chairman is implicit — never listed in seats"
     for seat_id in seats:
+        # Canonical kebab-case also guards the flat parser: an element
+        # containing a comma or quote could never pass this pattern.
+        assert KEBAB_RE.match(seat_id), f"seat ID not kebab-case: {seat_id!r}"
         assert (AGENTS_DIR / f"{seat_id}.md").is_file(), (
             f"roster names seat {seat_id!r} but agents/{seat_id}.md does not exist"
         )
+
+
+def test_council_default_model_overrides_keys():
+    """model_overrides keys must be roster seats or 'chairman' (engine STOP rule)."""
+    text = COUNCIL_DEFAULT.read_text()
+    frontmatter = text.split("---", 2)[1]
+    seats = set(_flat_list_line(text, "seats")) | {"chairman"}
+    in_overrides = False
+    override_keys = []
+    for line in frontmatter.splitlines():
+        if line.startswith("model_overrides:"):
+            in_overrides = True
+            continue
+        if in_overrides:
+            if line.startswith((" ", "\t")) and ":" in line:
+                override_keys.append(line.strip().split(":", 1)[0])
+            else:
+                in_overrides = False
+    assert override_keys, "council-default must carry a model_overrides map"
+    for key in override_keys:
+        assert key in seats, f"model_overrides names {key!r} — not a seat or chairman"
 
 
 def test_council_command_skill_contract():
@@ -186,8 +213,10 @@ def test_council_command_skill_contract():
     assert fm.get("name") == "council", "SKILL.md frontmatter name must be 'council'"
     assert fm.get("description"), "SKILL.md missing description (--strict fails)"
     assert len(text.splitlines()) < 500, "council SKILL.md must be <500 lines"
-    # FR8 standalone-guarantee markers + mode forwarding
-    for marker in ("people/", "index.sqlite", "`--full`", "council-default"):
+    # FR8 standalone-guarantee markers + mode forwarding. "Never read" is
+    # asserted alongside the paths so the PROHIBITION can't be gutted while
+    # the path strings survive elsewhere in the file.
+    for marker in ("Never read", "people/", "index.sqlite*", "`--full`", "council-default"):
         assert marker in text, f"council SKILL.md missing marker: {marker!r}"
 
 
