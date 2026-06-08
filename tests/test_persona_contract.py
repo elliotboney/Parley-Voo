@@ -121,6 +121,30 @@ def test_chairman_dissent_label_contract():
     assert "`Dissent:`" in body, "chairman.md missing the explicit Dissent: label"
 
 
+TOPOLOGIES_MD = SKILL_MD.parent / "references" / "topologies.md"
+
+
+def test_staged_topology_is_specified():
+    """## Staged must be a real spec (Story 1.3), not the 1.2 stub."""
+    text = TOPOLOGIES_MD.read_text()
+    staged = text.split("## Staged", 1)[1]
+    assert "not yet implemented" not in staged, "## Staged is still the 1.2 stub"
+    for marker in ("stage group", "prior stage", "framed input"):
+        assert marker in staged, f"## Staged spec missing handoff marker: {marker!r}"
+
+
+def test_skill_md_mode_resolution_rules():
+    """SKILL.md must carry quick/full mode resolution and staged dispatch (AC 2)."""
+    text = SKILL_MD.read_text()
+    for marker in ("quick_seats", "`--full`", "quick"):
+        assert marker in text, f"SKILL.md missing mode-resolution marker: {marker!r}"
+    assert "peer review" in text.lower(), "SKILL.md missing peer-review skip rule"
+    # staged must dispatch, not fail closed as unimplemented
+    assert "not implemented yet (Story 1.3)" not in text, (
+        "SKILL.md still fails closed on topology: staged"
+    )
+
+
 def test_skill_md_under_500_lines():
     """Architecture hard rule: SKILL.md body < 500 lines."""
     assert SKILL_MD.is_file(), "skills/council-engine/SKILL.md missing"

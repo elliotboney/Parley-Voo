@@ -54,5 +54,91 @@ as specified.
 
 ## Staged
 
-> Story 1.3 — not yet implemented. This heading is a stub so 1.3 extends
-> this document rather than restructuring it.
+Sequential pipeline with a decoder-ring handoff (FR7, FR13). Used for
+`/advise`-style work where downstream seats must build ON an upstream
+seat's read, not reason independently of it.
+
+### Roster shape
+
+When `topology: staged`, the roster's `seats` is an ordered list of
+**stage groups** (a list of lists). When `topology: parallel`, it stays a
+flat list. Both shapes are part of the portable roster contract (FR9):
+
+```yaml
+---
+topology: staged
+seats:
+  - [profile-translator]
+  - [message-strategist, negotiation-architect, influence-tactician]
+  - [red-team]
+quick_seats: [profile-translator, message-strategist]
+model_overrides:
+  chairman: strong-model
+---
+```
+
+The chairman is implicit in both topologies — never listed in `seats` or
+any stage group; the engine always appends chairman synthesis. A roster
+that lists `chairman` as a seat fails closed.
+
+> Forward pointer (Story 2.3): a seat that must run twice in one stage
+> (Profile Translator ×2 — subject and self, FR13) collides with the
+> duplicate-seat STOP. 2.3 owns resolving that (two persona files or a
+> stage-level repeat param). Until then, duplicates anywhere STOP.
+
+### Execution
+
+- Stage groups execute **sequentially** with hard boundaries: stage N+1
+  does not start until every seat in stage N has returned.
+- **Intra-stage parallelism:** all seats within one stage group spawn in
+  ONE message — same single-message rule as parallel stage 1. Seats in
+  the same stage never see each other's output.
+- **Decoder-ring handoff:** every seat in stage N+1 receives the original
+  framed input + ALL outputs of stage N — the prior stage ONLY, not a
+  cumulative chain. A stage that needs earlier context must carry it
+  forward in its own output; that forward-carry IS the decoder-ring
+  discipline.
+- **Handoff is attributed, not anonymous.** Stage outputs pass downstream
+  WITH display names — the decoder ring only works if downstream seats
+  know what they are building on. This is a deliberate contrast with the
+  parallel topology's isolation invariant, not an inconsistency to fix:
+  parallel protects independent first reads; staged builds a pipeline on
+  purpose. Anonymization applies only at the post-pipeline review and
+  synthesis step below.
+- **Failure rule per stage:** one retry per failed spawn, then STOP naming
+  the seat AND the stage index (e.g. `Seat 'red-team' returned no response
+  in stage 3 after one retry.`). A failed stage never lets the pipeline
+  continue with a partial handoff.
+
+### Full-mode tail
+
+After the last stage group completes (full mode only):
+
+1. Anonymized shuffle over ALL seat outputs from the whole run — one
+   label per seat response, randomized mapping, withheld downstream.
+2. Peer-review fan-out (reviewers are the participating seats, one
+   message, conformity check included) — same machinery as parallel
+   stage 2.
+3. Devil's advocate, then chairman synthesis — same as parallel stage
+   3a/3b, including label-based dissent attribution with engine-side
+   substitution.
+
+In quick mode the pipeline runs trimmed (see SKILL.md mode rules) and
+this tail reduces to shuffle + chairman only.
+
+## Modes
+
+Mode is an engine input (default `quick`; callers forward the user's
+`--full` flag). What each mode MEANS comes from the roster — never from
+the command:
+
+- **Quick (default):** only `quick_seats` execute; peer-review fan-out
+  and the separate devil's-advocate spawn are SKIPPED (NFR2 — debate only
+  where it earns its token cost); the anonymization shuffle is KEPT (zero
+  spawn cost, preserves the chairman's anti-deference boundary); chairman
+  synthesis always runs and notes the reduced assurance.
+- **Full (`--full`):** all seats + anonymized peer review + devil's
+  advocate + chairman.
+- **Staged quick:** a stage group whose intersection with `quick_seats`
+  is empty is skipped entirely; the handoff flows from the last
+  non-skipped stage to the next; stage order is preserved.
