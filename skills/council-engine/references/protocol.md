@@ -72,7 +72,11 @@ The chairman's synthesis renders exactly these headings, in this order:
 
 Dissent is never smoothed into the recommendation: minority positions
 survive under an explicit `Dissent:` label with attribution
-`— {Display Name}, {method}`.
+`— {Display Name}, {method}`. Mechanically: the chairman writes the
+attribution by response label (it never sees the seat mapping); the
+engine, which holds the mapping, substitutes the display name and method
+when rendering. Anonymity during weighing, named attribution in the
+deliverable — both, without contradiction.
 
 ## 6. Composable flags (pattern note — not implemented)
 

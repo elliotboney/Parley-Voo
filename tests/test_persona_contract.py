@@ -80,6 +80,47 @@ def test_all_persona_files_meet_contract():
         )
 
 
+def test_required_values_are_non_empty():
+    """Present-but-empty required values violate the contract."""
+    # `ignores` may legitimately be an empty list (chairman); all others must
+    # carry real content.
+    may_be_empty = {"ignores"}
+    for path in persona_files():
+        fm = parse_frontmatter(path)
+        for key in (PERSONA_KEYS | CLAUDE_CODE_KEYS) - may_be_empty:
+            value = fm.get(key)
+            assert value, f"{path.name}: key {key!r} is present but empty"
+
+
+# The AC-required chairman output contract, in order.
+CHAIRMAN_HEADINGS = [
+    "### Agrees",
+    "### Clashes",
+    "### Blind Spots",
+    "### Recommendation",
+    "### What You Lose",
+    "### Do This First",
+    "### Verify",
+]
+
+
+def test_chairman_output_contract_headings():
+    """chairman.md body must define all seven contract headings, in order."""
+    body = (AGENTS_DIR / "chairman.md").read_text().split("---", 2)[2]
+    positions = [body.find(h) for h in CHAIRMAN_HEADINGS]
+    missing = [h for h, p in zip(CHAIRMAN_HEADINGS, positions) if p == -1]
+    assert not missing, f"chairman.md missing contract headings: {missing}"
+    assert positions == sorted(positions), (
+        "chairman.md contract headings are out of order"
+    )
+
+
+def test_chairman_dissent_label_contract():
+    """chairman.md must instruct an explicit Dissent: label for minorities."""
+    body = (AGENTS_DIR / "chairman.md").read_text().split("---", 2)[2]
+    assert "`Dissent:`" in body, "chairman.md missing the explicit Dissent: label"
+
+
 def test_skill_md_under_500_lines():
     """Architecture hard rule: SKILL.md body < 500 lines."""
     assert SKILL_MD.is_file(), "skills/council-engine/SKILL.md missing"

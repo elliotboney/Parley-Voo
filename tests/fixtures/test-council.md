@@ -8,10 +8,12 @@ model_overrides:
 
 # Test Council (throwaway smoke-run fixture)
 
-Throwaway roster for verifying the council-engine parallel topology in
-Story 1.2. NOT a shipping roster — default rosters land in Stories 1.4/2.3.
-Seat personas are defined inline below (fixture-local, deliberately NOT in
-`agents/` so they never auto-load as live plugin agents).
+**Manual smoke-run record — NOT an engine-runnable roster.** The seat IDs
+below intentionally have no `agents/<seat-id>.md` files (so they never
+auto-load as live plugin agents); running this file through the engine's
+roster loader would correctly STOP on the first missing seat. It exists to
+document the personas used in Story 1.2's live smoke verification.
+NOT a shipping roster — default rosters land in Stories 1.4/2.3.
 
 ## test-pragmatist
 
